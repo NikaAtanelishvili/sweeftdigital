@@ -1,4 +1,5 @@
 import os.path
+import random
 import sys
 
 import pandas as pd
@@ -7,6 +8,7 @@ from numpy import dtype
 from torch import nn, optim
 
 from src.autoencoder import DenoisingAutoencoder, train_autoencoder, impute_missing
+from src.data_quality_analyzer import DataQualityAnalyzer
 from src.model import IncomePredictor
 
 # Loading data
@@ -14,6 +16,7 @@ df = pd.read_csv('./data/customer_analysis.csv', sep='\t')
 
 # Missing values in data
 missing_values = df.isnull().sum()
+
 missing_percentage = missing_values / len(df) * 100
 
 # ------------------------------
@@ -64,7 +67,7 @@ else:
 missing_indexes = df[df.isna().any(axis=1)].index
 
 for i in missing_indexes:
-    row_with_missing = df.iloc[0]  # Replace with the appropriate row index
+    row_with_missing = df.iloc[i]  # Replace with the appropriate row index
 
     # Create a boolean mask: True for missing values
     missing_mask = row_with_missing.isna().values
@@ -77,10 +80,24 @@ for i in missing_indexes:
     missing_mask_tensor = torch.tensor(missing_mask)
 
     # Impute the missing values
-    imputed_row = impute_missing(model, row_tensor, missing_mask_tensor, iterations=10).numpy()
+    imputed_row = impute_missing(model, row_tensor, missing_mask_tensor, iterations=10).numpy().round().astype(int)
 
     df.loc[i] = imputed_row
-    print("Imputed row:", imputed_row)
 
+
+# ------------------------------
+# Analyzing and filtering data
+# ------------------------------
+data_quality_analyzer = DataQualityAnalyzer()
+
+df = data_quality_analyzer.analyze_missing_values(df)
+
+df = data_quality_analyzer.analyze_id_duplicates(df, fix_issue=True)
+
+df = data_quality_analyzer.analyze_duplicate_rows(df, fix_issue=True)
+
+df = data_quality_analyzer.analyze_logical_issues(df, fix_issue=True)
+
+df = data_quality_analyzer.analyze_outliers(df, fix_issue=True)
 
 
