@@ -1,15 +1,9 @@
-import os.path
-import random
-import sys
-
 import pandas as pd
 import torch
-from numpy import dtype
-from torch import nn, optim
 
 from src.autoencoder import DenoisingAutoencoder, train_autoencoder, impute_missing
 from src.data_quality_analyzer import DataQualityAnalyzer
-from src.model import IncomePredictor
+from src.exploration_data_analyzer import ExplorationDataAnalyzer
 
 # Loading data
 df = pd.read_csv('./data/customer_analysis.csv', sep='\t')
@@ -54,7 +48,7 @@ model = DenoisingAutoencoder(input_dim=input_dim, hidden_dim=hidden_dim)
 
 import os
 
-model_path = "denoising_autoencoder.pth"
+model_path = "model/denoising_autoencoder.pth"
 if not os.path.exists(model_path):
     print("Training the autoencoder...")
     train_autoencoder(model, train_data, epochs=1000, noise_factor=0.2, lr=0.001)
@@ -100,4 +94,46 @@ df = data_quality_analyzer.analyze_logical_issues(df, fix_issue=True)
 
 df = data_quality_analyzer.analyze_outliers(df, fix_issue=True)
 
+# ------------------------------
+# Re-construction the data
+# ------------------------------
+
+# Dt customer
+df['Dt_Customer'] = pd.to_datetime(df[['Dt_Customer_Year', 'Dt_Customer_month', 'Dt_Customer_Day']].astype(str).agg('-'.join, axis=1), format='%Y-%m-%d')
+
+df.drop(['Dt_Customer_Year', 'Dt_Customer_month', 'Dt_Customer_Day'], axis=1, inplace=True)
+
+# Marital Status
+marital_cols = [col for col in df.columns if col.startswith('Marital_Status_')]
+
+df['Marital_Status'] = df[marital_cols].idxmax(axis=1).str.replace('Marital_Status_', '', regex=False)
+
+df.drop(columns=marital_cols, inplace=True)
+
+# Education
+education_cols = [col for col in df.columns if col.startswith('Education_')]
+
+# For each row, find the active dummy and remove the prefix.
+df['Education'] = df[education_cols].idxmax(axis=1).str.replace('Education_', '', regex=False)
+
+df.drop(columns=education_cols, inplace=True)
+
+# ------------------------------
+# Plotting the data
+# ------------------------------
+
+exploration_data_analyzer = ExplorationDataAnalyzer()
+
+exploration_data_analyzer.visualize_correlations(df)
+
+exploration_data_analyzer.visualize_distributions(df)
+
+exploration_data_analyzer.visualize_purchases(df)
+
+exploration_data_analyzer.visualize_relationships(df)
+
+# ------------------------------
+# Converting data frame into .csv
+# ------------------------------
+df.to_csv('./data/customer_analysis_updated.csv', index=False)
 

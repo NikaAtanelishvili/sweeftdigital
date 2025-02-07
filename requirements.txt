@@ -16,3 +16,7 @@ torchaudio==2.6.0+cpu
 torchvision==0.21.0+cpu
 typing_extensions==4.12.2
 tzdata==2025.1
+
+scipy~=1.15.1
+seaborn~=0.13.2
+matplotlib~=3.10.0
