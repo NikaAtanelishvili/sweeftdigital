@@ -66,6 +66,7 @@ class DataQualityAnalyzer:
 
     @staticmethod
     def analyze_logical_issues(df, fix_issue=False):
+        print(df.columns, 'Marital_Status_YOLO' in df.columns)
         negative_mask = df < 0
 
         negative_count_per_row = negative_mask.sum(axis=1)
@@ -80,12 +81,23 @@ class DataQualityAnalyzer:
 
             if fix_issue:
                 print('Deleting rows with negative values')
-                df_cleaned = df[~negative_mask.any(axis=1)]
+                df = df[~negative_mask.any(axis=1)]
                 print('Rows with negative values were deleted.')
-                return df_cleaned
+
+        if 'Marital_Status_YOLO' in df.columns or 'Marital_Status_Absurd' in df.columns:
+            mask_yolo_absurd = (df['Marital_Status_YOLO'] == 1) | (df['Marital_Status_Absurd'] == 1)
+            rows_with_yolo_absurd = df[mask_yolo_absurd]
+
+            if not rows_with_yolo_absurd.empty:
+                print("Data has invalid marital statuses")
+
+                if fix_issue:
+                    print('Removing rows with invalid marital statuses')
+                    df = df[~mask_yolo_absurd]
         else:
-            print("Data has no negative values ✅")
-            return df
+            print('Data has no logical issues ✅')
+
+        return df
 
 
     @staticmethod
