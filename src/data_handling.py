@@ -118,6 +118,16 @@ df['Education'] = df[education_cols].idxmax(axis=1).str.replace('Education_', ''
 
 df.drop(columns=education_cols, inplace=True)
 
+# Remove (pop) these columns from their current position
+education_series = df.pop('Education')
+marital_series   = df.pop('Marital_Status')
+dt_customer_series = df.pop('Dt_Customer')
+
+# Insert them at the desired indices
+df.insert(2, 'Education', education_series)
+df.insert(3, 'Marital_Status', marital_series)
+df.insert(7, 'Dt_Customer', dt_customer_series)
+
 # ------------------------------
 # Plotting the data
 # ------------------------------
@@ -136,4 +146,5 @@ exploration_data_analyzer.visualize_relationships(df)
 # Converting data frame into .csv
 # ------------------------------
 df.to_csv('./data/customer_analysis_updated.csv', index=False)
+print('Data frame was converted to .csv file.')
 
